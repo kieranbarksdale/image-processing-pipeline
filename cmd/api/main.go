@@ -7,12 +7,8 @@ import (
 	"image-processing-pipeline/internal/config"
 	"log"
 	"github.com/joho/godotenv"
+	"image-processing-pipeline/internal/api"
 )
-
-func healthHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "ok")
-}
-
 
 func main() {
 
@@ -26,15 +22,18 @@ func main() {
 	}
 
 	// setup database connection and connections 
-	db, err := db.NewConnection(cfg.DatabaseURL)
+	dbConnection, err := db.NewConnection(cfg.DatabaseURL)
 	if err != nil {
 		log.Fatal("Error connecting to database: ", err)
 	} 
-	fmt.Println("Database connected:", db.Stats())
+	fmt.Println("Database connected:", dbConnection.Stats())
 
 	// setup http handlers and routes
-	http.HandleFunc("/health", healthHandler)
+	http.HandleFunc("/health", api.HealthHandler)
 
 	// start server
-	http.ListenAndServe(cfg.ServerPort, nil)
+	err = http.ListenAndServe(cfg.ServerPort, nil)
+	if err != nil {
+		log.Fatal("Error starting server: ", err)
+	}
 }
