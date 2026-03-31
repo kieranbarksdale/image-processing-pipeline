@@ -13,6 +13,7 @@ import (
 
 type MinioClient struct {
 	Client *minio.Client
+	Bucket string
 }
 
 func waitUntilMinioIsReady(client *minio.Client) {
@@ -53,8 +54,6 @@ func NewClient(endpoint, accessKey, secretKey string, ssl bool) (*MinioClient, e
 			return nil, err
 		}
 	}
-
-	fmt.Println("Bucket '" + bucketName + "' created successfully")
 	
-	return &MinioClient{Client: client}, nil
+	return &MinioClient{Client: client, Bucket: bucketName}, nil
 }
