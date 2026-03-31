@@ -1,0 +1,60 @@
+package minio
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"time"
+
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
+)
+
+
+type MinioClient struct {
+	Client *minio.Client
+}
+
+func waitUntilMinioIsReady(client *minio.Client) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	for i := 0; i < 10; i++ {
+		_, err := client.ListBuckets(ctx)
+		if err == nil {
+			fmt.Println("Minio is ready")
+			return
+		}
+		fmt.Printf("Minio is not ready yet, retrying... (%d/10) error: %v\n", i+1, err)
+		time.Sleep(2 * time.Second)
+	}
+	panic("MinIO never became ready")
+}
+
+
+func NewClient(endpoint, accessKey, secretKey string, ssl bool) (*MinioClient, error) {
+	client, err := minio.New(endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
+		Secure: ssl,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	waitUntilMinioIsReady(client) 
+
+	ctx := context.Background()
+	bucketName := os.Getenv("MINIO_BUCKET")
+	err = client.MakeBucket(ctx, bucketName, minio.MakeBucketOptions{})
+	if err != nil {
+		exists, err := client.BucketExists(ctx, bucketName)
+		if err == nil && exists {
+			fmt.Println("Bucket '" + bucketName + "' already exists")
+		} else {
+			return nil, err
+		}
+	}
+
+	fmt.Println("Bucket '" + bucketName + "' created successfully")
+	
+	return &MinioClient{Client: client}, nil
+}

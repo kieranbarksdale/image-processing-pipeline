@@ -8,6 +8,7 @@ import (
 	"log"
 	"github.com/joho/godotenv"
 	"image-processing-pipeline/internal/api"
+	"image-processing-pipeline/internal/minio"
 )
 
 func main() {
@@ -27,6 +28,14 @@ func main() {
 		log.Fatal("Error connecting to database: ", err)
 	} 
 	fmt.Println("Database connected:", dbConnection.Stats())
+
+	// connect to minio 
+	minioClient, err := minio.NewClient(cfg.MinioEndpoint, cfg.MinioAccessKey, cfg.MinioSecretKey, false)
+	if err != nil {
+		log.Fatal("Error connecting to minio: ", err)
+	}
+	fmt.Println("Minio connected:", minioClient)
+	// do bucket testing here 
 
 	// setup http handlers and routes
 	http.HandleFunc("/health", api.HealthHandler)

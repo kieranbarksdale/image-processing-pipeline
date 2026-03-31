@@ -7,11 +7,8 @@ import (
 	"github.com/joho/godotenv"
 	"image-processing-pipeline/internal/db"
 	"net/http"
+	"image-processing-pipeline/internal/api"
 )
-
-func healthHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "ok")
-}
 
 func main() {
 	// load env variables
@@ -29,7 +26,7 @@ func main() {
 
 	fmt.Printf("Database connection established: %+v\n", db.Stats())
 	
-	http.HandleFunc("/health", healthHandler)
+	http.HandleFunc("/health", api.HealthHandler)
 
 	// TODO: start server on port 
 }

@@ -1,14 +1,18 @@
 package config
 
-import "os"
+import (
+	"fmt"
+	"os"
+)
 
 type Config struct {
 	DatabaseURL string
 	RedisURL    string
 	ServerPort  string
-	MinioURL    string
+	MinioEndpoint string
 	MinioAccessKey string
 	MinioSecretKey string
+	MinioBucket string
 }
 
 func Load() *Config {
@@ -28,11 +32,6 @@ func Load() *Config {
 	}
 	serverPort = ":" + serverPort
 	
-	minioURL := os.Getenv("MINIO_URL")
-	if minioURL == "" {
-		panic("MINIO_URL is not set")
-	}
-	
 	minioAccessKey := os.Getenv("MINIO_ACCESS_KEY")
 	if minioAccessKey == "" {
 		panic("MINIO_ACCESS_KEY is not set")
@@ -43,12 +42,30 @@ func Load() *Config {
 		panic("MINIO_SECRET_KEY is not set")
 	}
 
+	MinioPort := os.Getenv("MINIO_PORT")
+	if MinioPort == "" {
+		panic("MINIO_PORT is not set")
+	}
+	
+	MinioHost := os.Getenv("MINIO_HOST")
+	if MinioHost == "" {
+		panic("MINIO_HOST is not set")
+	}
+
+	MinioBucket := os.Getenv("MINIO_BUCKET")
+	if MinioBucket == "" {
+		panic("MINIO_BUCKET is not set")
+	}
+
+	minioEndpoint := fmt.Sprintf("%s:%s", MinioHost, MinioPort)
+
 	return &Config{
 		DatabaseURL:      databaseURL,
 		RedisURL:         redisURL,
 		ServerPort:       serverPort,
-		MinioURL:         minioURL,
+		MinioEndpoint:    minioEndpoint,
 		MinioAccessKey:   minioAccessKey,
 		MinioSecretKey:   minioSecretKey,
+		MinioBucket:      MinioBucket,
 	}
 }
