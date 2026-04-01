@@ -40,6 +40,10 @@ func main() {
 	// setup http handlers and routes
 	http.HandleFunc("/health", api.HealthHandler)
 
+	http.HandleFunc("/upload", func(w http.ResponseWriter, r *http.Request) {
+		api.UploadHandler(dbConnection, minioClient, w, r)
+	})
+
 	// start server
 	err = http.ListenAndServe(cfg.ServerPort, nil)
 	if err != nil {

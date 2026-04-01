@@ -16,46 +16,36 @@ type Config struct {
 }
 
 func Load() *Config {
-	databaseURL := os.Getenv("DATABASE_URL")
-	if databaseURL == "" {
-		panic("DATABASE_URL is not set")
-	}
 
-	redisURL := os.Getenv("REDIS_URL")
-	if redisURL == "" {
-		panic("REDIS_URL is not set")
-	}
-
-	serverPort := os.Getenv("API_PORT")
-	if serverPort == "" {
-		panic("API_PORT is not set")
-	}
-	serverPort = ":" + serverPort
+	getEnvOrPanic := func(key string) string {
+        val := os.Getenv(key)
+        if val == "" {
+            panic(fmt.Sprintf("CRITICAL: Environment variable %s is not set", key))
+        }
+        return val
+    }
 	
-	minioAccessKey := os.Getenv("MINIO_ACCESS_KEY")
-	if minioAccessKey == "" {
-		panic("MINIO_ACCESS_KEY is not set")
-	}
-	
-	minioSecretKey := os.Getenv("MINIO_SECRET_KEY")
-	if minioSecretKey == "" {
-		panic("MINIO_SECRET_KEY is not set")
-	}
+	serverPort := ":" + getEnvOrPanic("API_PORT")
+	minioAccessKey := getEnvOrPanic("MINIO_ACCESS_KEY")
+	minioSecretKey := getEnvOrPanic("MINIO_SECRET_KEY")
+	MinioPort := getEnvOrPanic("MINIO_PORT")
+	MinioHost := getEnvOrPanic("MINIO_HOST")
+	MinioBucket := getEnvOrPanic("MINIO_BUCKET")
 
-	MinioPort := os.Getenv("MINIO_PORT")
-	if MinioPort == "" {
-		panic("MINIO_PORT is not set")
-	}
-	
-	MinioHost := os.Getenv("MINIO_HOST")
-	if MinioHost == "" {
-		panic("MINIO_HOST is not set")
-	}
+	databaseURL := fmt.Sprintf(
+		"postgres://%s:%s@%s:%s/%s?sslmode=disable",
+		getEnvOrPanic("POSTGRES_USER"),
+		getEnvOrPanic("POSTGRES_PASSWORD"),
+		getEnvOrPanic("POSTGRES_HOST"),
+		getEnvOrPanic("POSTGRES_PORT"),
+		getEnvOrPanic("POSTGRES_DB"),
+	)
 
-	MinioBucket := os.Getenv("MINIO_BUCKET")
-	if MinioBucket == "" {
-		panic("MINIO_BUCKET is not set")
-	}
+	redisURL := fmt.Sprintf(
+		"redis://%s:%s",
+		getEnvOrPanic("REDIS_HOST"),
+		getEnvOrPanic("REDIS_PORT"),
+	)
 
 	minioEndpoint := fmt.Sprintf("%s:%s", MinioHost, MinioPort)
 
