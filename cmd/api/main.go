@@ -44,6 +44,10 @@ func main() {
 		api.UploadHandler(dbConnection, minioClient, w, r)
 	})
 
+	http.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
+		api.StatusHandler(dbConnection, w, r)
+	})
+
 	// start server
 	err = http.ListenAndServe(cfg.ServerPort, nil)
 	if err != nil {
