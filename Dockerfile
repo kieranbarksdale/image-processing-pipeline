@@ -13,6 +13,7 @@ RUN go build -o worker ./cmd/worker
 
 FROM alpine:3.18
 WORKDIR /app
+RUN apk add --no-cache curl
 COPY --from=builder /app/api .
 COPY --from=builder /app/worker .
 COPY --from=builder /app/internal/db/migrations ./internal/db/migrations

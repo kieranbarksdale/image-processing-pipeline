@@ -18,7 +18,7 @@ func main() {
 	cfg := config.Load()
 
 	// migrations will go here before we connecct to the DB
-	if err := db.Migrate(cfg.DatabaseURL); err != nil {
+	if err := db.Migrate(cfg.DatabaseURL, cfg.MigrationsPath); err != nil {
 		log.Fatal("Error running database migrations: ", err)
 	}
 

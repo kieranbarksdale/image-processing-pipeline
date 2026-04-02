@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"image-processing-pipeline/internal/db"
 	"image-processing-pipeline/internal/minio"
+	"github.com/google/uuid"
 )
 
 const MAX_UPLOAD_SIZE = 1024 * 1024 * 5 // 5 MB
@@ -14,30 +15,28 @@ func HealthHandler(w http.ResponseWriter, r *http.Request, ) {
 	fmt.Fprintln(w, "ok")
 }
 
-func UploadHandler(dbConnection *sql.DB, minioClient *minio.MinioClient, w http.ResponseWriter, r *http.Request) {
+func UploadHandler(dbConnection *sql.DB, minioClient *minio.MinioClient, w http.ResponseWriter, r *http.Request) uuid.UUID {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
+		return uuid.Nil
 	}
 	if r.Body == nil {
 		http.Error(w, "Request body and image file are required", http.StatusBadRequest)
-		return
+		return uuid.Nil
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, MAX_UPLOAD_SIZE)
 	if err := r.ParseMultipartForm(MAX_UPLOAD_SIZE); err != nil {
 		http.Error(w, "Request body too large", http.StatusBadRequest)
-		return
+		return uuid.Nil
 	}
 
 	file, handler, err := r.FormFile("image")
 	if err != nil {
 		http.Error(w, "Image file is required", http.StatusBadRequest)
-		return
+		return uuid.Nil
 	}
 	defer file.Close()
-
-
 
 	fmt.Printf("Uploaded File: %+v\n", handler.Filename)
 	fmt.Printf("File Size: %+v\n", handler.Size)
@@ -46,7 +45,7 @@ func UploadHandler(dbConnection *sql.DB, minioClient *minio.MinioClient, w http.
 	originalURL, err := minio.WriteImage(minioClient, file, handler.Size)
 	if err != nil {
 		http.Error(w, "Failed to upload file to minio", http.StatusInternalServerError)
-		return
+		return uuid.Nil
 	}
 	
 	// we need to write this originalURL to database and create a new entry,
@@ -55,11 +54,12 @@ func UploadHandler(dbConnection *sql.DB, minioClient *minio.MinioClient, w http.
 	if err != nil {
 		fmt.Println("DATABASE ERROR:", err)
 		http.Error(w, "Failed to create job", http.StatusInternalServerError)
-		return
+		return uuid.Nil
 	}
 	
-	// return the job id
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(fmt.Sprintf("%d", jobID)))
+	w.Write([]byte(fmt.Sprintf("%s", jobID.String()))) 
+
+	return jobID
 }
 

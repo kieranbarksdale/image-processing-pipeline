@@ -67,6 +67,7 @@ services:
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
       - MINIO_BUCKET=${MINIO_BUCKET}
       - API_PORT=${API_PORT}
+      - MIGRATIONS_PATH=file:///app/internal/db/migrations
     depends_on:
       db:
         condition: service_healthy
@@ -88,6 +89,7 @@ services:
       - REDIS_PORT=${REDIS_PORT}
       - MINIO_HOST=${MINIO_HOST}
       - MINIO_PORT=${MINIO_PORT}
+      - MIGRATIONS_PATH=file:///app/internal/db/migrations
     depends_on:
       db:
         condition: service_healthy

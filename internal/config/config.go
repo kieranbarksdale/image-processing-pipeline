@@ -13,6 +13,7 @@ type Config struct {
 	MinioAccessKey string
 	MinioSecretKey string
 	MinioBucket string
+	MigrationsPath string
 }
 
 func Load() *Config {
@@ -25,6 +26,7 @@ func Load() *Config {
         return val
     }
 	
+	migrationsPath := getEnvOrPanic("MIGRATIONS_PATH")
 	serverPort := ":" + getEnvOrPanic("API_PORT")
 	minioAccessKey := getEnvOrPanic("MINIO_ACCESS_KEY")
 	minioSecretKey := getEnvOrPanic("MINIO_SECRET_KEY")
@@ -51,6 +53,7 @@ func Load() *Config {
 
 	return &Config{
 		DatabaseURL:      databaseURL,
+		MigrationsPath:   migrationsPath,
 		RedisURL:         redisURL,
 		ServerPort:       serverPort,
 		MinioEndpoint:    minioEndpoint,
