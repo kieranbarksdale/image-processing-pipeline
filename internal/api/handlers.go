@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"image-processing-pipeline/internal/db"
 	"image-processing-pipeline/internal/minio"
+	"image-processing-pipeline/internal/queue"
 	"github.com/google/uuid"
 	"encoding/json"
 )
@@ -16,7 +17,7 @@ func HealthHandler(w http.ResponseWriter, r *http.Request, ) {
 	fmt.Fprintln(w, "ok")
 }
 
-func UploadHandler(dbConnection *sql.DB, minioClient *minio.MinioClient, w http.ResponseWriter, r *http.Request) {
+func UploadHandler(dbConnection *sql.DB, minioClient *minio.MinioClient, taskDistributor *queue.TaskDistributor, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -64,6 +65,12 @@ func UploadHandler(dbConnection *sql.DB, minioClient *minio.MinioClient, w http.
 		"job_id": jobID.String(),
 		"status": "pending",
 	})
+
+	err = queue.AddToQueue(taskDistributor, []byte(jobID.String()))
+	if err != nil {
+		http.Error(w, "Failed to enqueue task", http.StatusInternalServerError)
+		return
+	}
 }
 
 func StatusHandler(dbConnection *sql.DB, w http.ResponseWriter, r *http.Request) {
@@ -86,7 +93,7 @@ func StatusHandler(dbConnection *sql.DB, w http.ResponseWriter, r *http.Request)
 		http.Error(w, "Failed to get status", http.StatusInternalServerError)
 		return
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]interface{}{

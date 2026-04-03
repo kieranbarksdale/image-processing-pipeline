@@ -9,6 +9,7 @@ import (
 	"github.com/joho/godotenv"
 	"image-processing-pipeline/internal/api"
 	"image-processing-pipeline/internal/minio"
+	"image-processing-pipeline/internal/queue"
 )
 
 func main() {
@@ -37,11 +38,14 @@ func main() {
 	fmt.Println("Minio connected:", minioClient)
 	// do bucket testing here 
 
+	taskDistributor := queue.CreateQueue(cfg.RedisURL)
+	fmt.Println("Queue connected:", taskDistributor)
+
 	// setup http handlers and routes
 	http.HandleFunc("/health", api.HealthHandler)
 
 	http.HandleFunc("/upload", func(w http.ResponseWriter, r *http.Request) {
-		api.UploadHandler(dbConnection, minioClient, w, r)
+		api.UploadHandler(dbConnection, minioClient, taskDistributor, w, r)
 	})
 
 	http.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
