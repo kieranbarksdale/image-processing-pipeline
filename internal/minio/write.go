@@ -12,8 +12,8 @@ import (
 )
 
 
-func WriteImage(client *MinioClient, file io.ReadSeeker, size int64) (string, error) {
-	if client == nil {
+func WriteImage(minioClient *MinioClient, file io.ReadSeeker, size int64) (string, error) {
+	if minioClient == nil {
 		return "", fmt.Errorf("minio client is nil")
 	}
 	if size == 0 {
@@ -45,9 +45,9 @@ func WriteImage(client *MinioClient, file io.ReadSeeker, size int64) (string, er
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	uploadInfo, err := client.Client.PutObject(
+	uploadInfo, err := minioClient.Client.PutObject(
 		ctx, 
-		client.Bucket, 
+		minioClient.Bucket, 
 		objectKey, 
 		file, 
 		size, 
@@ -58,8 +58,8 @@ func WriteImage(client *MinioClient, file io.ReadSeeker, size int64) (string, er
 	if err != nil {
 		return "", err
 	}
-	fmt.Println("Uploaded", objectKey, "of size: ", uploadInfo.Size, "to bucket", client.Bucket + " key:" + uploadInfo.Key)
+	fmt.Println("Uploaded", objectKey, "of size: ", uploadInfo.Size, "to bucket", minioClient.Bucket + " key:" + uploadInfo.Key)
 
-	fullURL := client.Client.EndpointURL().String() + "/" + client.Bucket + "/" + objectKey
+	fullURL := minioClient.Client.EndpointURL().String() + "/" + minioClient.Bucket + "/" + objectKey
 	return fullURL, nil
 }
