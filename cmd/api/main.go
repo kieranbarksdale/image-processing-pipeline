@@ -38,7 +38,7 @@ func main() {
 	fmt.Println("Minio connected:", minioClient)
 	// do bucket testing here 
 
-	taskDistributor := queue.CreateQueue(cfg.RedisURL)
+	taskDistributor := queue.CreateQueue(fmt.Sprintf("%s:%s", cfg.RedisHost, cfg.RedisPort))
 	fmt.Println("Queue connected:", taskDistributor)
 
 	// setup http handlers and routes

@@ -58,6 +58,13 @@ func UploadHandler(dbConnection *sql.DB, minioClient *minio.MinioClient, taskDis
 		http.Error(w, "Failed to create job", http.StatusInternalServerError)
 		return
 	}
+
+	err = taskDistributor.AddToQueue(jobID.String(), originalURL)
+	if err != nil {
+		fmt.Println("QUEUE ERROR:", err)
+		http.Error(w, "Queue is unavailable", http.StatusServiceUnavailable) 
+		return
+	}
 	
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
@@ -65,21 +72,11 @@ func UploadHandler(dbConnection *sql.DB, minioClient *minio.MinioClient, taskDis
 		"job_id": jobID.String(),
 		"status": "pending",
 	})
-
-	err = queue.AddToQueue(taskDistributor, []byte(jobID.String()))
-	if err != nil {
-		http.Error(w, "Failed to enqueue task", http.StatusInternalServerError)
-		return
-	}
 }
 
 func StatusHandler(dbConnection *sql.DB, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	if r.Body == nil {
-		http.Error(w, "Request body is required", http.StatusBadRequest)
 		return
 	}
 	jobId, err := uuid.Parse(r.FormValue("jobId"))

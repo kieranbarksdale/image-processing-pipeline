@@ -7,13 +7,15 @@ import (
 
 type Config struct {
 	DatabaseURL string
+	MigrationsPath string
 	RedisURL    string
+	RedisHost   string
+	RedisPort   string
 	ServerPort  string
 	MinioEndpoint string
 	MinioAccessKey string
 	MinioSecretKey string
 	MinioBucket string
-	MigrationsPath string
 }
 
 func Load() *Config {
@@ -27,6 +29,8 @@ func Load() *Config {
     }
 	
 	migrationsPath := getEnvOrPanic("MIGRATIONS_PATH")
+	redisHost := getEnvOrPanic("REDIS_HOST")
+	redisPort := getEnvOrPanic("REDIS_PORT")
 	serverPort := ":" + getEnvOrPanic("API_PORT")
 	minioAccessKey := getEnvOrPanic("MINIO_ACCESS_KEY")
 	minioSecretKey := getEnvOrPanic("MINIO_SECRET_KEY")
@@ -45,8 +49,8 @@ func Load() *Config {
 
 	redisURL := fmt.Sprintf(
 		"redis://%s:%s",
-		getEnvOrPanic("REDIS_HOST"),
-		getEnvOrPanic("REDIS_PORT"),
+		redisHost,
+		redisPort,
 	)
 
 	minioEndpoint := fmt.Sprintf("%s:%s", MinioHost, MinioPort)
@@ -55,6 +59,8 @@ func Load() *Config {
 		DatabaseURL:      databaseURL,
 		MigrationsPath:   migrationsPath,
 		RedisURL:         redisURL,
+		RedisHost:        redisHost,
+		RedisPort:        redisPort,
 		ServerPort:       serverPort,
 		MinioEndpoint:    minioEndpoint,
 		MinioAccessKey:   minioAccessKey,
