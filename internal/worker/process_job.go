@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"image-processing-pipeline/internal/queue"
-	"github.com/minio/minio-go/v7"
 	"github.com/hibiken/asynq"
 )
 
@@ -27,12 +26,13 @@ func (workerHandler *WorkerHandler) HandleProcessJob(ctx context.Context, task *
 	} 
 
 	// get photo from minio  
-	obj, err := workerHandler.minioClient.GetObject(ctx, "images",payload.URL, minio.GetObjectOptions{})
+	data, err := workerHandler.minioClient.GetImage(ctx, "images", payload.URL)
 	if err != nil {
 		fmt.Println("Error getting object:", err)
 		return err
-	}
-	defer obj.Close()
+	} 
+
+	fmt.Println("Got image data:", len(data), "bytes", "and type:", data)
 
 	//loop of 3 
 	for i := 0; i < 3; i++ {

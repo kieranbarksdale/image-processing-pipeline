@@ -5,18 +5,17 @@ import (
 	"fmt"
 	"os"
 	"time"
-
-	"github.com/minio/minio-go/v7"
+	minioSDK "github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 
 type MinioClient struct {
-	Client *minio.Client
+	Client *minioSDK.Client
 	Bucket string
 }
 
-func waitUntilMinioIsReady(client *minio.Client) {
+func waitUntilMinioIsReady(client *minioSDK.Client) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	for i := 0; i < 10; i++ {
@@ -33,7 +32,7 @@ func waitUntilMinioIsReady(client *minio.Client) {
 
 
 func NewClient(endpoint, accessKey, secretKey string, ssl bool) (*MinioClient, error) {
-	client, err := minio.New(endpoint, &minio.Options{
+	client, err := minioSDK.New(endpoint, &minioSDK.Options{
 		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
 		Secure: ssl,
 	})
@@ -45,7 +44,7 @@ func NewClient(endpoint, accessKey, secretKey string, ssl bool) (*MinioClient, e
 
 	ctx := context.Background()
 	bucketName := os.Getenv("MINIO_BUCKET")
-	err = client.MakeBucket(ctx, bucketName, minio.MakeBucketOptions{})
+	err = client.MakeBucket(ctx, bucketName, minioSDK.MakeBucketOptions{})
 	if err != nil {
 		exists, err := client.BucketExists(ctx, bucketName)
 		if err == nil && exists {
