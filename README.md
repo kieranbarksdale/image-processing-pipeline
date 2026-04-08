@@ -64,3 +64,9 @@ This service is an image processing pupeline where a user can upload an image, a
 | url        | TEXT    | Location of processed image in object storage |
 | size       | ENUM    | thumbnail, medium, large       |
 | created_at | TIMESTAMP | When the record was created  |
+
+
+### Image sizing 
+Thumbnail → 200px
+Medium    → 800px
+Large     → 1600px

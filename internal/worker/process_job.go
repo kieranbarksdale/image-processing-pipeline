@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -36,14 +37,20 @@ func (workerHandler *WorkerHandler) HandleProcessJob(ctx context.Context, task *
 
 	fmt.Println("Got image data:", len(data), "bytes")
 
+	img, err := workerHandler.imageProcessor.Decode(bytes.NewReader(data))
+	if err != nil {
+		return err
+	}
+
 	//loop of 3 
 	for i := 0; i < 3; i++ {
 		// do something with that photo
+		// resize image
 		// save result to minio 
+		// write to images table
 	}
 	
-	// update job status to finsihed 
-	// return nil
+	// update job status to finsihed in jobs table 
 
 	return nil
 }
