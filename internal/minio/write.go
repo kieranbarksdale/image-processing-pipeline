@@ -60,6 +60,5 @@ func WriteImage(minioClient *MinioClient, file io.ReadSeeker, size int64) (strin
 	}
 	fmt.Println("Uploaded", objectKey, "of size: ", uploadInfo.Size, "to bucket", minioClient.Bucket + " key:" + uploadInfo.Key)
 
-	fullURL := minioClient.Client.EndpointURL().String() + "/" + minioClient.Bucket + "/" + objectKey
-	return fullURL, nil
+	return objectKey, nil
 }

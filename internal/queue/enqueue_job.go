@@ -8,13 +8,13 @@ import (
 
 type ImageProcessPayload struct {
 	JobID string `json:"job_id"`
-	URL   string `json:"url"`
+	Key   string `json:"key"`
 }
 
-func (taskDistributor *TaskDistributor) AddToQueue(jobId string, originalURL string) error {
+func (taskDistributor *TaskDistributor) AddToQueue(jobId string, originalKey string) error {
 	payload := ImageProcessPayload{
 		JobID: jobId,
-		URL:   originalURL,
+		Key:   originalKey,
 	}
 	marshalledPayload, err := json.Marshal(payload)
 	if err != nil {

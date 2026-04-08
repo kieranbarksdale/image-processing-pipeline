@@ -19,20 +19,22 @@ func (workerHandler *WorkerHandler) HandleProcessJob(ctx context.Context, task *
 
 	fmt.Println("Beginning processing image with job ID:", payload.JobID)
 	// write to DB saying its in progress
-	_, err = workerHandler.db.ExecContext(ctx, "UPDATE jobs SET status = 'processing' WHERE id = ?", payload.JobID)
+	_, err = workerHandler.db.ExecContext(ctx, "UPDATE jobs SET status = 'processing' WHERE id = $1", payload.JobID)
 	if err != nil {
 		fmt.Println("Error updating job status:", err)
 		return err
 	} 
 
+	fmt.Println("Job status updated to processing")
+
 	// get photo from minio  
-	data, err := workerHandler.minioClient.GetImage(ctx, "images", payload.URL)
+	data, err := workerHandler.minioClient.GetImage(ctx, "images", payload.Key)
 	if err != nil {
 		fmt.Println("Error getting object:", err)
 		return err
 	} 
 
-	fmt.Println("Got image data:", len(data), "bytes", "and type:", data)
+	fmt.Println("Got image data:", len(data), "bytes")
 
 	//loop of 3 
 	for i := 0; i < 3; i++ {

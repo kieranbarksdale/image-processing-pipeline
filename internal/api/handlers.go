@@ -44,7 +44,7 @@ func UploadHandler(dbConnection *sql.DB, minioClient *minio.MinioClient, taskDis
 	fmt.Printf("File Size: %+v\n", handler.Size)
 	fmt.Printf("MIME Header: %+v\n", handler.Header)
 
-	originalURL, err := minio.WriteImage(minioClient, file, handler.Size)
+	originalKey, err := minio.WriteImage(minioClient, file, handler.Size)
 	if err != nil {
 		http.Error(w, "Failed to upload file to minio", http.StatusInternalServerError)
 		return
@@ -52,14 +52,14 @@ func UploadHandler(dbConnection *sql.DB, minioClient *minio.MinioClient, taskDis
 	
 	// we need to write this originalURL to database and create a new entry,
 	ctx := r.Context()
-	jobID, err := db.CreateJob(ctx, dbConnection, originalURL)
+	jobID, err := db.CreateJob(ctx, dbConnection, originalKey)
 	if err != nil {
 		fmt.Println("DATABASE ERROR:", err)
 		http.Error(w, "Failed to create job", http.StatusInternalServerError)
 		return
 	}
 
-	err = taskDistributor.AddToQueue(jobID.String(), originalURL)
+	err = taskDistributor.AddToQueue(jobID.String(), originalKey)
 	if err != nil {
 		fmt.Println("QUEUE ERROR:", err)
 		http.Error(w, "Queue is unavailable", http.StatusServiceUnavailable) 
