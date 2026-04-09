@@ -1,9 +1,12 @@
 package worker
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
+	"bytes"
+	"image"
+	_ "image/jpeg"
+	_ "image/png"
 	"fmt"
 	"image-processing-pipeline/internal/queue"
 	"github.com/hibiken/asynq"
@@ -37,15 +40,24 @@ func (workerHandler *WorkerHandler) HandleProcessJob(ctx context.Context, task *
 
 	fmt.Println("Got image data:", len(data), "bytes")
 
-	img, err := workerHandler.imageProcessor.Decode(bytes.NewReader(data))
-	if err != nil {
+
+	// we need to decode the image 
+
+	img, _, err := image.Decode(bytes.NewReader(data))
+	if err != nil { 
+		fmt.Println("Error decoding image:", err)
 		return err
 	}
+	fmt.Println("Decoded image:", img.Bounds())
 
 	//loop of 3 
-	for i := 0; i < 3; i++ {
-		// do something with that photo
-		// resize image
+	sizes := []int{200, 800, 1600}
+	for _, size := range sizes {
+		resizedImg, err := ResizeImage(img, size, 0)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("Resized image to %dx%d (%d bytes)\n", size, size, len(resizedImg))
 		// save result to minio 
 		// write to images table
 	}
