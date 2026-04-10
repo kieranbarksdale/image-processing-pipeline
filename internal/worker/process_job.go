@@ -25,7 +25,8 @@ func (workerHandler *WorkerHandler) HandleProcessJob(ctx context.Context, task *
 
 	fmt.Println("Beginning processing image with job ID:", payload.JobID)
 	// write to DB saying its in progress
-	_, err = workerHandler.db.ExecContext(ctx, "UPDATE jobs SET status = 'processing' WHERE id = $1", payload.JobID)
+
+	err = db.PutStatus(ctx, workerHandler.db, payload.JobID, "processing")
 	if err != nil {
 		fmt.Println("Error updating job status:", err)
 		return err
@@ -72,15 +73,18 @@ func (workerHandler *WorkerHandler) HandleProcessJob(ctx context.Context, task *
 		err = db.CreateImage(ctx, workerHandler.db, payload.JobID, key, getSizeName(size))
 		if err != nil {
 			fmt.Println("Error creating image in the database:", err)
+
 			return err
 		}
 		fmt.Printf("Written image to database with key: %s\n", key)
-
-		
-		// write to images table
 	}
 	
-	// update job status to finsihed in jobs table 
+	err = db.PutStatus(ctx, workerHandler.db, payload.JobID, "completed")
+	if err != nil {
+		fmt.Println("Error updating job status:", err)
+		return err
+	}
+	
 
 	return nil
 }
