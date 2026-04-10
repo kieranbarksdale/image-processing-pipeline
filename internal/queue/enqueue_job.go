@@ -2,7 +2,6 @@ package queue
 
 import (
 	"encoding/json"
-
 	"github.com/hibiken/asynq"
 )
 
@@ -21,7 +20,7 @@ func (taskDistributor *TaskDistributor) AddToQueue(jobId string, originalKey str
 		return err
 	}
 	task := asynq.NewTask("image:process", marshalledPayload)
-	_, err = taskDistributor.client.Enqueue(task)
+	_, err = taskDistributor.client.Enqueue(task, asynq.MaxRetry(3))
 	if err != nil {
 		return err
 	}
