@@ -1,0 +1,1 @@
+ALTER TABLE jobs RENAME COLUMN img_key TO original_url;

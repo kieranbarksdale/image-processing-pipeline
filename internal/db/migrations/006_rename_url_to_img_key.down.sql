@@ -1,0 +1,1 @@
+ALTER TABLE images RENAME COLUMN img_key TO url;
