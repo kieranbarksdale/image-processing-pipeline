@@ -7,6 +7,7 @@ import (
 	"image-processing-pipeline/internal/db"
 	"image-processing-pipeline/internal/minio"
 	"image-processing-pipeline/internal/queue"
+	"image-processing-pipeline/internal/cache"
 	"github.com/google/uuid"
 	"encoding/json"
 )
@@ -17,7 +18,28 @@ func HealthHandler(w http.ResponseWriter, r *http.Request, ) {
 	fmt.Fprintln(w, "ok")
 }
 
-func UploadHandler(dbConnection *sql.DB, minioClient *minio.MinioClient, taskDistributor *queue.TaskDistributor, w http.ResponseWriter, r *http.Request) {
+func UploadHandler(dbConnection *sql.DB, minioClient *minio.MinioClient, taskDistributor *queue.TaskDistributor, redisClient *cache.RedisClient, w http.ResponseWriter, r *http.Request) {
+	
+	limited, err := redisClient.IsRateLimited(r.RemoteAddr) 
+	if err != nil {
+		fmt.Println("CACHE ERROR:", err)
+		http.Error(w, "Cache service unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	if limited {
+		http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
+		return
+	}
+
+
+	if err != nil {
+		http.Error(w, "Rate limit check failed", http.StatusInternalServerError)
+		return
+	}
+	if limited {
+		http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
+		return
+	}
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return

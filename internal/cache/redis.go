@@ -9,7 +9,7 @@ type RedisClient struct {
 	client *redis.Client
 }
 
-func NewRedisClient(connectionString string) (*RedisClient, error) {
+func CreateRedisClient(connectionString string) (*RedisClient, error) {
 	opts, err := redis.ParseURL(connectionString)
 	if err != nil {
 		return nil, err
@@ -20,5 +20,5 @@ func NewRedisClient(connectionString string) (*RedisClient, error) {
 		return nil, err
 	}
 
-	return client, nil
+	return &RedisClient{client: client}, nil
 }

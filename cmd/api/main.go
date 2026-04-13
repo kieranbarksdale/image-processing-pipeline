@@ -10,6 +10,7 @@ import (
 	"image-processing-pipeline/internal/api"
 	"image-processing-pipeline/internal/minio"
 	"image-processing-pipeline/internal/queue"
+	"image-processing-pipeline/internal/cache"
 )
 
 func main() {
@@ -38,6 +39,12 @@ func main() {
 	fmt.Println("Minio connected:", minioClient)
 	// do bucket testing here 
 
+	redisClient, err := cache.CreateRedisClient(cfg.RedisURL)
+	if err != nil {
+		log.Fatal("Error connecting to redis: ", err)
+	}
+	fmt.Println("Redis connected:", redisClient)
+
 	taskDistributor := queue.CreateQueue(fmt.Sprintf("%s:%s", cfg.RedisHost, cfg.RedisPort))
 	fmt.Println("Queue connected:", taskDistributor)
 
@@ -45,7 +52,7 @@ func main() {
 	http.HandleFunc("/health", api.HealthHandler)
 
 	http.HandleFunc("/upload", func(w http.ResponseWriter, r *http.Request) {
-		api.UploadHandler(dbConnection, minioClient, taskDistributor, w, r)
+		api.UploadHandler(dbConnection, minioClient, taskDistributor, redisClient, w, r)
 	})
 
 	http.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {

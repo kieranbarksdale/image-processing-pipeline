@@ -5,8 +5,8 @@ import (
 	"database/sql"
 )
 
-func (workerHandler *WorkerHandler) IncrementTries(ctx context.Context) error {
-	_, err := workerHandler.db.ExecContext(ctx, "UPDATE jobs SET tries = tries + 1 WHERE id = $1", workerHandler.jobID)
+func IncrementTries(ctx context.Context, db *sql.DB, jobID string) error {
+	_, err := db.ExecContext(ctx, "UPDATE jobs SET tries = tries + 1 WHERE id = $1", jobID)
 	if err != nil {
 		return err
 	}
