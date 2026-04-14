@@ -18,8 +18,6 @@ jobs:
           context: . 
           push: false
           tags: image-processing-pipeline:test
-      - name: Debug File Structure
-          run: ls -R
 
     
   smoke_test:
