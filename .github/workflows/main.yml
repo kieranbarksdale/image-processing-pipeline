@@ -18,4 +18,18 @@ jobs:
           context: . 
           push: false
           tags: image-processing-pipeline:test
-  
+
+    
+  smoke_test:
+    needs: build_docker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run Compose 
+        run: docker compose up -d
+
+  health_test:
+    needs: smoke_test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Health Test
+        run: curl localhost:8080/healthz
