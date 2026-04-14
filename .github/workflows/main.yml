@@ -24,14 +24,11 @@ jobs:
     needs: build_docker
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout Code 
+        uses: actions/checkout@v4
       - name: File Lister
         run: ls -R
       - name: Run Compose 
-        run: docker compose up --build -d
-
-  health_test:
-    needs: smoke_test
-    runs-on: ubuntu-latest
-    steps:
+        run: docker compose up --build -d --wait
       - name: Health Test
-        run: curl localhost:8080/healthz
+        run: curl --fail http://localhost:8080/healthz
