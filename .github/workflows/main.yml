@@ -24,6 +24,8 @@ jobs:
     needs: build_docker
     runs-on: ubuntu-latest
     steps:
+      - name: File Lister
+        run: ls -R
       - name: Run Compose 
         run: docker compose up --build -d
 
