@@ -14,9 +14,6 @@ import (
 
 const MAX_UPLOAD_SIZE = 1024 * 1024 * 5 // 5 MB
 
-func HealthHandler(w http.ResponseWriter, r *http.Request, ) {
-	fmt.Fprintln(w, "ok")
-}
 
 func UploadHandler(dbConnection *sql.DB, minioClient *minio.MinioClient, taskDistributor *queue.TaskDistributor, redisClient *cache.RedisClient, w http.ResponseWriter, r *http.Request) {
 	

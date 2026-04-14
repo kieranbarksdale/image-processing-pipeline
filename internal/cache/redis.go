@@ -22,3 +22,7 @@ func CreateRedisClient(connectionString string) (*RedisClient, error) {
 
 	return &RedisClient{client: client}, nil
 }
+
+func (redisClient *RedisClient) Ping() error {
+	return redisClient.client.Ping(context.Background()).Err()
+}

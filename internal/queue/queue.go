@@ -16,3 +16,8 @@ func CreateQueue(redisAddr string) *TaskDistributor {
 		client: client,
 	}
 }
+
+func (taskDistributor *TaskDistributor) Ping() error {
+	return taskDistributor.client.Ping()
+}
+
