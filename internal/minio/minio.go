@@ -56,3 +56,9 @@ func NewClient(endpoint, accessKey, secretKey string, ssl bool) (*MinioClient, e
 	
 	return &MinioClient{Client: client, Bucket: bucketName}, nil
 }
+
+func (minioClient *MinioClient) Ping() error {
+	ctx := context.Background()
+	_, err := minioClient.Client.ListBuckets(ctx)
+	return err
+}

@@ -8,6 +8,7 @@ import (
 	"log"
 	"github.com/joho/godotenv"
 	"image-processing-pipeline/internal/api"
+	"image-processing-pipeline/internal/api/health"
 	"image-processing-pipeline/internal/minio"
 	"image-processing-pipeline/internal/queue"
 	"image-processing-pipeline/internal/cache"
@@ -49,7 +50,11 @@ func main() {
 	fmt.Println("Queue connected:", taskDistributor)
 
 	// setup http handlers and routes
-	http.HandleFunc("/health", api.HealthHandler)
+	http.HandleFunc("/health", health.HealthHandler)
+
+	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		health.HealthzHandler(dbConnection, minioClient, taskDistributor, redisClient, w, r)
+	})
 
 	http.HandleFunc("/upload", func(w http.ResponseWriter, r *http.Request) {
 		api.UploadHandler(dbConnection, minioClient, taskDistributor, redisClient, w, r)
