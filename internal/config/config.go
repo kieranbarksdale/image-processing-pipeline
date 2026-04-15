@@ -20,31 +20,31 @@ type Config struct {
 
 func Load() *Config {
 
-	getEnvOrPanic := func(key string) string {
+	getEnvOrPanic := func(key string, fallback string) string {
         val := os.Getenv(key)
         if val == "" {
-            panic(fmt.Sprintf("CRITICAL: Environment variable %s is not set", key))
+            return fallback
         }
         return val
     }
 	
-	migrationsPath := getEnvOrPanic("MIGRATIONS_PATH")
-	redisHost := getEnvOrPanic("REDIS_HOST")
-	redisPort := getEnvOrPanic("REDIS_PORT")
-	serverPort := ":" + getEnvOrPanic("API_PORT")
-	minioAccessKey := getEnvOrPanic("MINIO_ACCESS_KEY")
-	minioSecretKey := getEnvOrPanic("MINIO_SECRET_KEY")
-	MinioPort := getEnvOrPanic("MINIO_PORT")
-	MinioHost := getEnvOrPanic("MINIO_HOST")
-	MinioBucket := getEnvOrPanic("MINIO_BUCKET")
+	migrationsPath := getEnvOrPanic("MIGRATIONS_PATH", "file:///app/internal/db/migrations")
+	redisHost := getEnvOrPanic("REDIS_HOST", "redis")
+	redisPort := getEnvOrPanic("REDIS_PORT", "6379")
+	serverPort := ":" + getEnvOrPanic("API_PORT", "8080")
+	minioAccessKey := getEnvOrPanic("MINIO_ACCESS_KEY", "minioadmin")
+	minioSecretKey := getEnvOrPanic("MINIO_SECRET_KEY", "minioadmin")
+	MinioPort := getEnvOrPanic("MINIO_PORT", "9000")
+	MinioHost := getEnvOrPanic("MINIO_HOST", "minio")
+	MinioBucket := getEnvOrPanic("MINIO_BUCKET", "images")
 
 	databaseURL := fmt.Sprintf(
 		"postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		getEnvOrPanic("POSTGRES_USER"),
-		getEnvOrPanic("POSTGRES_PASSWORD"),
-		getEnvOrPanic("POSTGRES_HOST"),
-		getEnvOrPanic("POSTGRES_PORT"),
-		getEnvOrPanic("POSTGRES_DB"),
+		getEnvOrPanic("POSTGRES_USER", "postgres"),
+		getEnvOrPanic("POSTGRES_PASSWORD", "postgres"),
+		getEnvOrPanic("POSTGRES_HOST", "db"),
+		getEnvOrPanic("POSTGRES_PORT", "5432"),
+		getEnvOrPanic("POSTGRES_DB", "postgres"),
 	)
 
 	redisURL := fmt.Sprintf(

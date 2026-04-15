@@ -38,8 +38,7 @@ func main() {
 		log.Fatal("Error connecting to minio: ", err)
 	}
 	fmt.Println("Minio connected:", minioClient)
-	// do bucket testing here 
-
+	
 	redisClient, err := cache.CreateRedisClient(cfg.RedisURL)
 	if err != nil {
 		log.Fatal("Error connecting to redis: ", err)

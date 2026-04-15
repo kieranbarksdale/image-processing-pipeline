@@ -1,5 +1,5 @@
 name: CI Pipeline
-on: [push, pull_request]
+on: [push, pull_request, workflow_dispatch]
 
 jobs:
   build_docker:
@@ -18,4 +18,42 @@ jobs:
           context: . 
           push: false
           tags: image-processing-pipeline:test
-  
+
+    
+  smoke_test:
+    needs: build_docker
+    runs-on: ubuntu-latest
+    # Every variable your Go 'config.Load()' expects MUST be here
+    env:
+      POSTGRES_USER: admin
+      POSTGRES_DB: image_processor
+      POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      POSTGRES_HOST: db        # Critical for Docker networking
+      POSTGRES_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      MINIO_HOST: minio
+      MINIO_PORT: 9000
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: ${{ secrets.MINIO_ROOT_PASSWORD }}
+      MINIO_ACCESS_KEY: admin
+      MINIO_SECRET_KEY: ${{ secrets.MINIO_ROOT_PASSWORD }}
+      MINIO_BUCKET: images
+      API_PORT: 8080
+    steps:
+      - name: Checkout Code 
+        uses: actions/checkout@v4
+
+      - name: Run Compose
+        run: docker compose up --build -d --wait
+
+      - name: Inspect Logs on Failure
+        if: failure()
+        run: |
+          docker compose logs minio
+          docker compose logs api
+          docker compose logs worker
+          docker compose logs db
+
+      - name: Health Test
+        run: curl --fail http://localhost:8080/healthz
