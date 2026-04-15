@@ -63,6 +63,10 @@ func main() {
 		api.StatusHandler(dbConnection, w, r)
 	})
 
+	http.HandleFunc("/get-image", func(w http.ResponseWriter, r *http.Request) {
+		api.GetImageHandler(dbConnection, minioClient, w, r)
+	})
+
 	// start server
 	err = http.ListenAndServe(cfg.ServerPort, nil)
 	if err != nil {

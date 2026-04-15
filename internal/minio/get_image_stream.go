@@ -8,28 +8,26 @@ import (
 	"strings"
 )
 
-func (minioClient *MinioClient) GetImage(ctx context.Context, bucketName string, objectName string) ([]byte, error) {
+func (minioClient *MinioClient) GetImageStream(ctx context.Context, bucketName string, objectName string) (io.ReadCloser, error) {
 	objectName = strings.TrimSpace(objectName)
 	objectName = strings.TrimPrefix(objectName, "/")
+
+	// This doesn't download the object yet 
 	obj, err := minioClient.Client.GetObject(ctx, bucketName, objectName, minioSDK.GetObjectOptions{})
 	if err != nil {
 		fmt.Println("ERRRRRRRRRR:", err)
 		return nil, err
 	}
 	fmt.Println("Object retrieved successfully")
-	defer obj.Close()
+
+	// Get the object stats to make sure the entire thing is there
 	_, err = obj.Stat()
 	if err != nil {
+		obj.Close()
 		fmt.Printf("minio stat error for [%s]: %s\n", objectName, err.Error())
 		return nil, err
 	}
 	fmt.Println("Object stats retrieved successfully")
-	// this puts the image in a byte slice 
-	data, err := io.ReadAll(obj)
-	if err != nil {
-		return nil, err
-	}
-	fmt.Println("Image data read successfully")
 
-	return data, nil
+	return obj, nil
 }

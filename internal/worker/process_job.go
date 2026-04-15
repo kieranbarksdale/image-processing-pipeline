@@ -36,24 +36,26 @@ func (workerHandler *WorkerHandler) HandleProcessJob(ctx context.Context, task *
 	fmt.Println("Job status updated to processing")
 
 	// get photo from minio  
-	data, err := workerHandler.minioClient.GetImage(ctx, "images", payload.Key)
+	imageStream, err := workerHandler.minioClient.GetImageStream(ctx, "images", payload.Key)
 	if err != nil {
 		fmt.Println("Error getting object:", err)
 		db.IncrementTries(ctx, workerHandler.db, payload.JobID)
 		return err
 	} 
 
-	fmt.Println("Got image data:", len(data), "bytes")
+	defer imageStream.Close()
+
+	fmt.Println("Got image stream")
 
 
-	// we need to decode the image 
-	img, _, err := image.Decode(bytes.NewReader(data))
+	// we need to decode the image
+	img, format, err := image.Decode(imageStream)
 	if err != nil { 
 		fmt.Println("Error decoding image:", err)
 		db.IncrementTries(ctx, workerHandler.db, payload.JobID)
 		return err
 	}
-	fmt.Println("Decoded image:", img.Bounds())
+	fmt.Println("Decoded image:", format, img.Bounds())
 
 	//loop of all the sizes
 	sizes := []int{200, 800, 1600}

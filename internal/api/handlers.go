@@ -10,6 +10,9 @@ import (
 	"image-processing-pipeline/internal/cache"
 	"github.com/google/uuid"
 	"encoding/json"
+	"io"
+	"archive/zip"
+	"context"
 )
 
 const MAX_UPLOAD_SIZE = 1024 * 1024 * 5 // 5 MB
@@ -116,4 +119,71 @@ func StatusHandler(dbConnection *sql.DB, w http.ResponseWriter, r *http.Request)
 		"job_id": jobId.String(),
 		"status": status,
 	})
+}
+
+func GetImageHandler(dbConnection *sql.DB, minioClient *minio.MinioClient, w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	jobId, err := uuid.Parse(r.FormValue("jobId"))
+	if err != nil {
+		http.Error(w, "Invalid job ID", http.StatusBadRequest)
+		return
+	}
+
+	status, err := db.GetStatus(dbConnection, jobId)
+	if err != nil {
+		http.Error(w, "Failed to get status", http.StatusInternalServerError)
+		return
+	}
+	if status != "completed" {
+		http.Error(w, "Image not ready", http.StatusNoContent)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Content-Disposition", "attachment; filename=/resized-images.zip")
+
+	zipWriter := zip.NewWriter(w)
+	defer zipWriter.Close()
+
+	imgKeys, err := db.GetImageKeys(context.Background(), dbConnection, jobId.String()) // Need to implement
+	if err != nil { 
+		http.Error(w, "Failed to getting images", http.StatusInternalServerError)
+		return
+	}
+	if imgKeys == nil { 
+		w.WriteHeader(http.StatusNoContent)
+		w.Write([]byte("No images found"))
+		return
+	}
+
+	for _, key := range imgKeys {
+		// get the image from minio
+		imageStream, err := minioClient.GetImageStream(context.Background(), "images", key)
+		if err != nil {
+			http.Error(w, "Failed to get image", http.StatusInternalServerError)
+			return
+		}
+
+		// Now logic for zip handler
+
+
+		// write the image to the zip file
+		writer, err := zipWriter.Create(key)
+		if err != nil {
+			continue
+		}
+		
+		n, err := io.Copy(writer, imageStream)
+		fmt.Printf("Zipped %d bytes for key %s\n", n, key)
+		imageStream.Close()
+		if err != nil {
+			return
+		}
+	}
+
+	// write the zip back throught he API 
+
 }
