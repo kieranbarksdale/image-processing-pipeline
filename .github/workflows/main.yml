@@ -36,3 +36,8 @@ jobs:
         run: docker compose up --build -d --wait
       - name: Health Test
         run: curl --fail http://localhost:8080/healthz
+      - name: Inspect Container Logs on Failure
+        if: failure()
+        run: |
+          docker compose logs api
+          docker compose logs worker
