@@ -40,11 +40,11 @@ func Load() *Config {
 
 	databaseURL := fmt.Sprintf(
 		"postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		getEnvOrPanic("POSTGRES_USER"),
-		getEnvOrPanic("POSTGRES_PASSWORD"),
-		getEnvOrPanic("POSTGRES_HOST"),
-		getEnvOrPanic("POSTGRES_PORT"),
-		getEnvOrPanic("POSTGRES_DB"),
+		getEnvOrPanic("POSTGRES_USER", "postgres"),
+		getEnvOrPanic("POSTGRES_PASSWORD", "postgres"),
+		getEnvOrPanic("POSTGRES_HOST", "db"),
+		getEnvOrPanic("POSTGRES_PORT", "5432"),
+		getEnvOrPanic("POSTGRES_DB", "postgres"),
 	)
 
 	redisURL := fmt.Sprintf(
