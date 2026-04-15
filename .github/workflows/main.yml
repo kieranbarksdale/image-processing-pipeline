@@ -44,14 +44,13 @@ jobs:
       - name: Checkout Code 
         uses: actions/checkout@v4
 
-      - name: Run Compose 
-        # --wait handles the healthchecks automatically
+      - name: Run Compose
         run: docker compose up --build -d --wait
 
       - name: Inspect Logs on Failure
-        # This MUST be its own step to run only if the previous step fails
         if: failure()
         run: |
+          docker compose logs minio
           docker compose logs api
           docker compose logs worker
           docker compose logs db
