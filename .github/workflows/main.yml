@@ -23,6 +23,10 @@ jobs:
   smoke_test:
     needs: build_docker
     runs-on: ubuntu-latest
+    env:
+      POSTGRES_USER: admin
+      POSTGRES_DB: image_processor
+      POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
     steps:
       - name: Checkout Code 
         uses: actions/checkout@v4
