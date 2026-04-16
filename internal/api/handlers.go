@@ -3,6 +3,7 @@ package api
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"net/http"
 	"image-processing-pipeline/internal/db"
 	"image-processing-pipeline/internal/minio"
@@ -122,6 +123,7 @@ func StatusHandler(dbConnection *sql.DB, w http.ResponseWriter, r *http.Request)
 }
 
 func GetImageHandler(dbConnection *sql.DB, minioClient *minio.MinioClient, w http.ResponseWriter, r *http.Request) {
+	log.Println("DEBUG: Received request for ZIP download")
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -147,9 +149,11 @@ func GetImageHandler(dbConnection *sql.DB, minioClient *minio.MinioClient, w htt
 
 	zipWriter := zip.NewWriter(w)
 	defer zipWriter.Close()
+	log.Println("DEBUG: Created ZIP writer")
 
 	imgKeys, err := db.GetImageKeys(context.Background(), dbConnection, jobId.String()) // Need to implement
 	if err != nil { 
+		log.Println("DEBUG: Failed to get image keys")
 		http.Error(w, "Failed to getting images", http.StatusInternalServerError)
 		return
 	}
@@ -158,32 +162,32 @@ func GetImageHandler(dbConnection *sql.DB, minioClient *minio.MinioClient, w htt
 		w.Write([]byte("No images found"))
 		return
 	}
+	log.Println("DEBUG: Found", len(imgKeys), "images")
 
 	for _, key := range imgKeys {
 		// get the image from minio
 		imageStream, err := minioClient.GetImageStream(context.Background(), "images", key)
 		if err != nil {
-			http.Error(w, "Failed to get image", http.StatusInternalServerError)
+			log.Printf("Failed to get image for key %s: %v", key, err)
 			return
 		}
+		log.Println("DEBUG: Got image stream for key", key)
 
 		// Now logic for zip handler
-
 
 		// write the image to the zip file
 		writer, err := zipWriter.Create(key)
 		if err != nil {
+			log.Printf("Failed to create zip entry for key %s: %v", key, err)
 			continue
 		}
+		log.Println("DEBUG: Creating zip entry for key", key)
 		
 		n, err := io.Copy(writer, imageStream)
-		fmt.Printf("Zipped %d bytes for key %s\n", n, key)
+		log.Println("DEBUG: Zipped", n, "bytes for key", key)
 		imageStream.Close()
 		if err != nil {
 			return
 		}
 	}
-
-	// write the zip back throught he API 
-
 }
