@@ -14,9 +14,15 @@ import (
 	"io"
 	"archive/zip"
 	"context"
+	"github.com/go-chi/chi/v5"
 )
 
 const MAX_UPLOAD_SIZE = 1024 * 1024 * 5 // 5 MB
+
+type GetImageRequest struct {
+	JobId    string `json:"jobId"`
+	FileName string `json:"fileName"`
+}
 
 
 func UploadHandler(dbConnection *sql.DB, minioClient *minio.MinioClient, taskDistributor *queue.TaskDistributor, redisClient *cache.RedisClient, w http.ResponseWriter, r *http.Request) {
@@ -123,12 +129,15 @@ func StatusHandler(dbConnection *sql.DB, w http.ResponseWriter, r *http.Request)
 }
 
 func GetImageHandler(dbConnection *sql.DB, minioClient *minio.MinioClient, w http.ResponseWriter, r *http.Request) {
-	log.Println("DEBUG: Received request for ZIP download")
+	
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	jobId, err := uuid.Parse(r.FormValue("jobId"))
+	
+	jobIdStr := chi.URLParam(r, "jobId")
+	log.Printf("path=%q jobIdStr=%q", r.URL.Path, jobIdStr)
+	jobId, err := uuid.Parse(jobIdStr)
 	if err != nil {
 		http.Error(w, "Invalid job ID", http.StatusBadRequest)
 		return
@@ -145,13 +154,9 @@ func GetImageHandler(dbConnection *sql.DB, minioClient *minio.MinioClient, w htt
 	}
 
 	w.Header().Set("Content-Type", "application/zip")
-	w.Header().Set("Content-Disposition", "attachment; filename=/resized-images.zip")
+	w.Header().Set("Content-Disposition", "attachment; filename="+jobId.String()+".zip")
 
-	zipWriter := zip.NewWriter(w)
-	defer zipWriter.Close()
-	log.Println("DEBUG: Created ZIP writer")
-
-	imgKeys, err := db.GetImageKeys(context.Background(), dbConnection, jobId.String()) // Need to implement
+	imgKeys, err := db.GetImageKeys(context.Background(), dbConnection, jobId.String())
 	if err != nil { 
 		log.Println("DEBUG: Failed to get image keys")
 		http.Error(w, "Failed to getting images", http.StatusInternalServerError)
@@ -163,6 +168,10 @@ func GetImageHandler(dbConnection *sql.DB, minioClient *minio.MinioClient, w htt
 		return
 	}
 	log.Println("DEBUG: Found", len(imgKeys), "images")
+
+	zipWriter := zip.NewWriter(w)
+	defer zipWriter.Close()
+	log.Println("DEBUG: Created ZIP writer")
 
 	for _, key := range imgKeys {
 		// get the image from minio

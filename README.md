@@ -70,3 +70,11 @@ This service is an image processing pupeline where a user can upload an image, a
 Thumbnail → 200px
 Medium    → 800px
 Large     → 1600px
+
+
+Updated README 
+
+Handlers 
+- POST /upload - Upload an image
+- GET /jobs/{id} - Get the status of a job
+- GET /get-images/{id}/{file_name} - Get the processed images

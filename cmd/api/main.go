@@ -12,6 +12,7 @@ import (
 	"image-processing-pipeline/internal/minio"
 	"image-processing-pipeline/internal/queue"
 	"image-processing-pipeline/internal/cache"
+	"github.com/go-chi/chi/v5"
 )
 
 func main() {
@@ -19,6 +20,9 @@ func main() {
 	// load env vairables 
 	godotenv.Load()
 	cfg := config.Load()
+
+	// Get Chi router 
+	router := chi.NewRouter()
 
 	// migrations will go here before we connecct to the DB
 	if err := db.Migrate(cfg.DatabaseURL, cfg.MigrationsPath); err != nil {
@@ -49,26 +53,26 @@ func main() {
 	fmt.Println("Queue connected:", taskDistributor)
 
 	// setup http handlers and routes
-	http.HandleFunc("/health", health.HealthHandler)
+	router.HandleFunc("/health", health.HealthHandler)
 
-	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		health.HealthzHandler(dbConnection, minioClient, taskDistributor, redisClient, w, r)
 	})
 
-	http.HandleFunc("/upload", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/upload", func(w http.ResponseWriter, r *http.Request) {
 		api.UploadHandler(dbConnection, minioClient, taskDistributor, redisClient, w, r)
 	})
 
-	http.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
 		api.StatusHandler(dbConnection, w, r)
 	})
 
-	http.HandleFunc("/get-image", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/images/{jobId}", func(w http.ResponseWriter, r *http.Request) {
 		api.GetImageHandler(dbConnection, minioClient, w, r)
 	})
 
 	// start server
-	err = http.ListenAndServe(cfg.ServerPort, nil)
+	err = http.ListenAndServe(cfg.ServerPort, router)
 	if err != nil {
 		log.Fatal("Error starting server: ", err)
 	}
