@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"bytes"
 	"image"
+	"log"
 	_ "image/jpeg"
 	_ "image/png"
 	"image-processing-pipeline/internal/queue"
@@ -41,7 +42,7 @@ func (workerHandler *WorkerHandler) HandleProcessJob(ctx context.Context, task *
 	defer imageStream.Close()
 
 	// we need to decode the image
-	img, format, err := image.Decode(imageStream)
+	img, _, err := image.Decode(imageStream)
 	if err != nil { 
 		log.Printf("Error decoding image: %v", err)
 		db.IncrementTries(ctx, workerHandler.db, payload.JobID)
