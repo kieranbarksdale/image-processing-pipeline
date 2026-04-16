@@ -19,17 +19,11 @@ import (
 
 const MAX_UPLOAD_SIZE = 1024 * 1024 * 5 // 5 MB
 
-type GetImageRequest struct {
-	JobId    string `json:"jobId"`
-	FileName string `json:"fileName"`
-}
-
-
 func UploadHandler(dbConnection *sql.DB, minioClient *minio.MinioClient, taskDistributor *queue.TaskDistributor, redisClient *cache.RedisClient, w http.ResponseWriter, r *http.Request) {
 	
 	limited, err := redisClient.IsRateLimited(r.RemoteAddr) 
 	if err != nil {
-		fmt.Println("CACHE ERROR:", err)
+		log.Println("CACHE ERROR:", err)
 		http.Error(w, "Cache service unavailable", http.StatusServiceUnavailable)
 		return
 	}
@@ -37,7 +31,6 @@ func UploadHandler(dbConnection *sql.DB, minioClient *minio.MinioClient, taskDis
 		http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
 		return
 	}
-
 
 	if err != nil {
 		http.Error(w, "Rate limit check failed", http.StatusInternalServerError)
@@ -69,9 +62,9 @@ func UploadHandler(dbConnection *sql.DB, minioClient *minio.MinioClient, taskDis
 	}
 	defer file.Close()
 
-	fmt.Printf("Uploaded File: %+v\n", handler.Filename)
-	fmt.Printf("File Size: %+v\n", handler.Size)
-	fmt.Printf("MIME Header: %+v\n", handler.Header)
+	log.Printf("Uploaded File: %+v\n", handler.Filename)
+	log.Printf("File Size: %+v\n", handler.Size)
+	log.Printf("MIME Header: %+v\n", handler.Header)
 
 	originalKey, err := minio.WriteImage(minioClient, file, handler.Size)
 	if err != nil {
@@ -83,14 +76,14 @@ func UploadHandler(dbConnection *sql.DB, minioClient *minio.MinioClient, taskDis
 	ctx := r.Context()
 	jobID, err := db.CreateJob(ctx, dbConnection, originalKey)
 	if err != nil {
-		fmt.Println("DATABASE ERROR:", err)
+		log.Println("DATABASE ERROR:", err)
 		http.Error(w, "Failed to create job", http.StatusInternalServerError)
 		return
 	}
 
 	err = taskDistributor.AddToQueue(jobID.String(), originalKey)
 	if err != nil {
-		fmt.Println("QUEUE ERROR:", err)
+		log.Println("QUEUE ERROR:", err)
 		http.Error(w, "Queue is unavailable", http.StatusServiceUnavailable) 
 		return
 	}
@@ -103,12 +96,25 @@ func UploadHandler(dbConnection *sql.DB, minioClient *minio.MinioClient, taskDis
 	})
 }
 
-func StatusHandler(dbConnection *sql.DB, w http.ResponseWriter, r *http.Request) {
+func StatusHandler(dbConnection *sql.DB, redisClient *cache.RedisClient, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	jobId, err := uuid.Parse(r.FormValue("jobId"))
+
+	limited, err := redisClient.IsRateLimited(r.RemoteAddr) 
+	if err != nil {
+		log.Println("CACHE ERROR:", err)
+		http.Error(w, "Cache service unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	if limited {
+		http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
+		return
+	}
+	
+	jobIdStr := chi.URLParam(r, "jobId")
+	jobId, err := uuid.Parse(jobIdStr)
 	if err != nil {
 		http.Error(w, "Invalid job ID", http.StatusBadRequest)
 		return
@@ -128,15 +134,25 @@ func StatusHandler(dbConnection *sql.DB, w http.ResponseWriter, r *http.Request)
 	})
 }
 
-func GetImageHandler(dbConnection *sql.DB, minioClient *minio.MinioClient, w http.ResponseWriter, r *http.Request) {
+func GetImageHandler(dbConnection *sql.DB, minioClient *minio.MinioClient, redisClient *cache.RedisClient, w http.ResponseWriter, r *http.Request) {
 	
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
+	limited, err := redisClient.IsRateLimited(r.RemoteAddr) 
+	if err != nil {
+		log.Println("CACHE ERROR:", err)
+		http.Error(w, "Cache service unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	if limited {
+		http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
+		return
+	}
 	
 	jobIdStr := chi.URLParam(r, "jobId")
-	log.Printf("path=%q jobIdStr=%q", r.URL.Path, jobIdStr)
 	jobId, err := uuid.Parse(jobIdStr)
 	if err != nil {
 		http.Error(w, "Invalid job ID", http.StatusBadRequest)

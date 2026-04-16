@@ -1,80 +1,118 @@
-# Image Processing Pipeline
+# Distributed Image Processing Pipeline
 
-## Requirements
-### Functional:
+An asynchronous image processing service built in Go. Upload an image, get a job ID 
+back immediately, and poll for status while a background worker resizes it into three 
+versions.
 
-Merchants can upload an image via a REST API
-The upload endpoint returns immediately without waiting for processing
-The system produces three versions of every uploaded image: thumbnail (150x150), medium (800x800), and large (1920x1920)
-Merchants can query the status of their upload — pending, processing, completed, failed
-Merchants can retrieve the URLs of their processed images once complete
-Failed processing jobs must be retried automatically up to 3 times before being marked as permanently failed
+## Architecture
 
-### Non-functional:
+Two binaries communicate through a Redis-backed task queue:
 
-The upload endpoint must respond in under 200ms regardless of image size
-The system must handle 500 concurrent uploads without degradation
-Processed images must be stored durably — not on the local filesystem
-The system must be observable — you need to know how many jobs are pending, processing, failed at any given time
+- **API** (`cmd/api`) — validates uploads, stores the original image in MinIO, writes 
+  job metadata to Postgres, enqueues a processing task, and returns a job ID. 
+  Responds in under 200ms regardless of image size.
+- **Worker** (`cmd/worker`) — pulls tasks from the Asynq queue, fetches the original 
+  from MinIO, resizes into three formats, stores results back to MinIO, and updates 
+  job status in Postgres. Failed jobs are retried up to 3 times before being marked 
+  permanently failed.
 
-## Constraints
-- Use Go
-- Use PostgreSQL for job metadata
-- Use Redis with Asynq as your message queue (this is what a real Go job queue looks like)
-- Use MinIO as your object storage — it's an open source S3-compatible storage server you can run locally via Docker. The API is identical to AWS S3 so switching to real S3 in production requires changing one config value.
-- All infrastructure via Docker Compose
+## Tech Stack
 
-## Deliverable
-A running service where you can POST /upload with an image, get back a job ID, poll GET /jobs/{id} and watch the status move from pending → processing → completed, then call GET /jobs/{id}/images and get back three URLs pointing to the processed versions.
+- **Go** — API and worker binaries
+- **PostgreSQL** — job metadata and processed image URLs
+- **Redis + Asynq** — distributed task queue
+- **MinIO** — S3-compatible object storage
+- **Docker Compose** — local infrastructure orchestration
 
+## Getting Started
 
-1. What does this service do. 
-This service is an image processing pupeline where a user can upload an image, and it will instantaniously get a response of the job's id and start processing the images into 3 different sizes. The user can query the status of the job using the job id and see the status of their image being processed. Once it is done, the user can get three urls of the processed images in different sizes.
-2. What are the components 
-- A database to hold all of the metadata about the images and their location in the storage container
-- A message queue to hold all of the jobs and their order 
-- An API gateway to handle the requests 
-- A storage container similar to an S3 bucket to store the processed images
-- 
-3. What breaks at scale?
-- Adding lots of images at once can overwhelm the system
-- If a message queue fails, jobs can be lost
-- If the database goes down, all job metadata is lost
-- If the storage container goes down, all processed images are lost
-- IF a user submits to many images at once, the system can become overwhelmed 
+Prerequisites: Docker and Docker Compose.
+```bash
+docker compose up --build -d
+docker compose logs -f api worker
+```
 
+## API
 
+### POST /upload
+
+Upload an image for processing. Returns immediately.
+```bash
+curl -X POST http://localhost:8080/upload \
+  -F "image=@photo.jpg"
+```
+```json
+{ "job_id": "c96be8b8-3127-429f-8628-79ca9198d63e", "status": "pending" }
+```
+
+### GET /status/{jobId}
+
+Poll job status. Transitions: `pending` → `processing` → `completed` | `failed`
+```bash
+curl http://localhost:8080/status/c96be8b8-3127-429f-8628-79ca9198d63e
+```
+```json
+{ "status": "completed" }
+```
+
+### GET /images/{jobId}
+
+Returns a zip archive of all three processed versions once the job is complete.
+```bash
+curl http://localhost:8080/images/c96be8b8-3127-429f-8628-79ca9198d63e \
+  --output c96be8b8-3127-429f-8628-79ca9198d63e.zip
+```
+
+Archive structure:
+```
+c96be8b8-3127-429f-8628-79ca9198d63e.zip/
+├── 3bb84ab7-668e-47eb-ad23-880c8d52e4c4_2026-04-15_20-47-53.489.jpg
+├── 3oidsa9f-ss00-fgio-i852-fa8tvi9apaha_2026-04-15_20-47-53.489.jpg
+└── 98sbsksj-0ops-by21-kgu7-0fmfpdisnw35_2026-04-15_20-47-53.489.jpg
+```
 
 ## Database Schema
 
 ### jobs
-| Column     | Type    | Description                    |
-|------------|---------|--------------------------------|
-| id         | UUID    | Primary key                    |
-| status     | ENUM    | pending, processing, completed, failed |
-| retries    | INT     | Number of processing attempts  |
-| error      | TEXT    | Error message if failed, null otherwise |
-| created_at | TIMESTAMP | When the job was created     |
+| Column     | Type      | Description                             |
+|------------|-----------|-----------------------------------------|
+| id         | UUID      | Primary key                             |
+| status     | TEXT      | pending, processing, completed, failed  |
+| retries    | INT       | Number of processing attempts           |
+| img_key    | TEXT      | Object key of original image in MinIO   |
+| error      | TEXT      | Error message if failed, null otherwise |
+| created_at | TIMESTAMP | When the job was created                |
 
 ### images
-| Column     | Type    | Description                    |
-|------------|---------|--------------------------------|
-| id         | UUID    | Primary key                    |
-| job_id     | UUID    | Foreign key → jobs.id          |
-| url        | TEXT    | Location of processed image in object storage |
-| size       | ENUM    | thumbnail, medium, large       |
-| created_at | TIMESTAMP | When the record was created  |
+| Column     | Type      | Description                            |
+|------------|-----------|----------------------------------------|
+| id         | UUID      | Primary key                            |
+| job_id     | UUID      | Foreign key → jobs.id                  |
+| img_key    | TEXT      | Object key of processed image in MinIO |
+| size       | TEXT      | thumbnail, medium, large               |
+| created_at | TIMESTAMP | When the record was created            |
 
+## Image Sizes
 
-### Image sizing 
-Thumbnail → 200px
-Medium    → 800px
-Large     → 1600px
+| Size      | Width  |
+|-----------|--------|
+| Thumbnail | 200px  |
+| Medium    | 800px  |
+| Large     | 1600px |
 
+## What Breaks at Scale
 
-Updated README 
-
-Handlers 
-- POST /upload - Upload an image
-- GET /jobs/{id} - Get the status of a job
-- GET /get-images/{id}/{file_name} - Get the processed images
+- **Static worker count** — worker concurrency is fixed in the compose file. Under 
+  sustained load the queue grows unbounded. Production would need auto-scaling worker 
+  instances based on queue depth.
+- **Single MinIO node** — no replication. If the container dies, images are 
+  inaccessible until recovery. Production would use S3 or a distributed MinIO cluster.
+- **Redis durability** — Redis runs without persistence enabled. A restart loses all 
+  pending jobs. Production requires AOF persistence or an external queue with 
+  guaranteed delivery.
+- **No per-merchant rate limiting** — a single merchant uploading 10,000 images can 
+  starve other merchants. Queue priority or per-merchant concurrency limits would 
+  be needed.
+- **Postgres write amplification** — each job produces 5+ writes across two tables. 
+  At high concurrency this becomes a bottleneck. Read replicas and connection pooling 
+  would be required at production scale.

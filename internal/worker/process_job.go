@@ -7,7 +7,6 @@ import (
 	"image"
 	_ "image/jpeg"
 	_ "image/png"
-	"fmt"
 	"image-processing-pipeline/internal/queue"
 	"github.com/hibiken/asynq"
 	"image-processing-pipeline/internal/db"
@@ -24,38 +23,30 @@ func (workerHandler *WorkerHandler) HandleProcessJob(ctx context.Context, task *
 		return err
 	}
 
-	fmt.Println("Beginning processing image with job ID:", payload.JobID)
-
 	err = db.PutStatus(ctx, workerHandler.db, payload.JobID, "processing")
 	if err != nil {
-		fmt.Println("Error updating job status:", err)
+		log.Printf("Error updating job status: %v", err)
 		db.IncrementTries(ctx, workerHandler.db, payload.JobID)
 		return err
-	} 
-
-	fmt.Println("Job status updated to processing")
+	}
 
 	// get photo from minio  
 	imageStream, err := workerHandler.minioClient.GetImageStream(ctx, "images", payload.Key)
 	if err != nil {
-		fmt.Println("Error getting object:", err)
+		log.Printf("Error getting object: %v", err)
 		db.IncrementTries(ctx, workerHandler.db, payload.JobID)
 		return err
 	} 
 
 	defer imageStream.Close()
 
-	fmt.Println("Got image stream")
-
-
 	// we need to decode the image
 	img, format, err := image.Decode(imageStream)
 	if err != nil { 
-		fmt.Println("Error decoding image:", err)
+		log.Printf("Error decoding image: %v", err)
 		db.IncrementTries(ctx, workerHandler.db, payload.JobID)
 		return err
 	}
-	fmt.Println("Decoded image:", format, img.Bounds())
 
 	//loop of all the sizes
 	sizes := []int{200, 800, 1600}
@@ -65,7 +56,6 @@ func (workerHandler *WorkerHandler) HandleProcessJob(ctx context.Context, task *
 			db.IncrementTries(ctx, workerHandler.db, payload.JobID)
 			return err
 		}
-		fmt.Printf("Resized image to %dx%d (%d bytes)\n", size, size, len(resizedImg))
 
 		ioImg := bytes.NewReader(resizedImg)
 
@@ -74,20 +64,18 @@ func (workerHandler *WorkerHandler) HandleProcessJob(ctx context.Context, task *
 			db.IncrementTries(ctx, workerHandler.db, payload.JobID)
 			return err
 		}
-		fmt.Printf("Saved image to minio with key: %s\n", key)
 
 		err = db.CreateImage(ctx, workerHandler.db, payload.JobID, key, getSizeName(size))
 		if err != nil {
-			fmt.Println("Error creating image in the database:", err)
+			log.Printf("Error creating image in the database: %v", err)
 			db.IncrementTries(ctx, workerHandler.db, payload.JobID)
 			return err
 		}
-		fmt.Printf("Written image to database with key: %s\n", key)
 	}
 	
 	err = db.PutStatus(ctx, workerHandler.db, payload.JobID, "completed")
 	if err != nil {
-		fmt.Println("Error updating job status:", err)
+		log.Printf("Error updating job status: %v", err)
 		db.IncrementTries(ctx, workerHandler.db, payload.JobID)
 		return err
 	}

@@ -45,7 +45,7 @@ func WriteImage(minioClient *MinioClient, file io.ReadSeeker, size int64) (strin
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	uploadInfo, err := minioClient.Client.PutObject(
+	_, err = minioClient.Client.PutObject(
 		ctx, 
 		minioClient.Bucket, 
 		objectKey, 
@@ -58,7 +58,6 @@ func WriteImage(minioClient *MinioClient, file io.ReadSeeker, size int64) (strin
 	if err != nil {
 		return "", err
 	}
-	fmt.Println("Uploaded", objectKey, "of size: ", uploadInfo.Size, "to bucket", minioClient.Bucket + " key:" + uploadInfo.Key)
 
 	return objectKey, nil
 }

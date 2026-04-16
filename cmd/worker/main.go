@@ -27,14 +27,14 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	} 
-	fmt.Printf("Database connection established: %+v\n", db.Stats())
+	log.Printf("Database connection established: %+v\n", db.Stats())
 
 	//Minio connection 
 	minioClient, err := minio.NewClient(cfg.MinioEndpoint, cfg.MinioAccessKey, cfg.MinioSecretKey, false)
 	if err != nil {
 		log.Fatal("Error connecting to minio: ", err)
 	}
-	fmt.Println("Minio connected:", minioClient)
+	log.Println("Minio connected:", minioClient)
 
 	// Asynq server setup
 	srv := asynq.NewServer(

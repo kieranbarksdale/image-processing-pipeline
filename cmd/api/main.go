@@ -34,23 +34,23 @@ func main() {
 	if err != nil {
 		log.Fatal("Error connecting to database: ", err)
 	} 
-	fmt.Println("Database connected:", dbConnection.Stats())
+	log.Println("Database connected:", dbConnection.Stats())
 
 	// connect to minio 
 	minioClient, err := minio.NewClient(cfg.MinioEndpoint, cfg.MinioAccessKey, cfg.MinioSecretKey, false)
 	if err != nil {
 		log.Fatal("Error connecting to minio: ", err)
 	}
-	fmt.Println("Minio connected:", minioClient)
+	log.Println("Minio connected:", minioClient)
 	
 	redisClient, err := cache.CreateRedisClient(cfg.RedisURL)
 	if err != nil {
 		log.Fatal("Error connecting to redis: ", err)
 	}
-	fmt.Println("Redis connected:", redisClient)
+	log.Println("Redis connected:", redisClient)
 
 	taskDistributor := queue.CreateQueue(fmt.Sprintf("%s:%s", cfg.RedisHost, cfg.RedisPort))
-	fmt.Println("Queue connected:", taskDistributor)
+	log.Println("Queue connected:", taskDistributor)
 
 	// setup http handlers and routes
 	router.HandleFunc("/health", health.HealthHandler)
@@ -63,12 +63,12 @@ func main() {
 		api.UploadHandler(dbConnection, minioClient, taskDistributor, redisClient, w, r)
 	})
 
-	router.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
-		api.StatusHandler(dbConnection, w, r)
+	router.HandleFunc("/status/{jobId}", func(w http.ResponseWriter, r *http.Request) {
+		api.StatusHandler(dbConnection, redisClient, w, r)
 	})
 
 	router.HandleFunc("/images/{jobId}", func(w http.ResponseWriter, r *http.Request) {
-		api.GetImageHandler(dbConnection, minioClient, w, r)
+		api.GetImageHandler(dbConnection, minioClient, redisClient, w, r)
 	})
 
 	// start server

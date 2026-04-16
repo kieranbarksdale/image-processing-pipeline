@@ -2,7 +2,7 @@ package minio
 
 import (
 	"context"
-	"fmt"
+	"log"
 	"os"
 	"time"
 	minioSDK "github.com/minio/minio-go/v7"
@@ -21,10 +21,9 @@ func waitUntilMinioIsReady(client *minioSDK.Client) {
 	for i := 0; i < 10; i++ {
 		_, err := client.ListBuckets(ctx)
 		if err == nil {
-			fmt.Println("Minio is ready")
 			return
 		}
-		fmt.Printf("Minio is not ready yet, retrying... (%d/10) error: %v\n", i+1, err)
+		log.Printf("Minio is not ready yet, retrying... (%d/10) error: %v", i+1, err)
 		time.Sleep(2 * time.Second)
 	}
 	panic("MinIO never became ready")
@@ -48,7 +47,7 @@ func NewClient(endpoint, accessKey, secretKey string, ssl bool) (*MinioClient, e
 	if err != nil {
 		exists, err := client.BucketExists(ctx, bucketName)
 		if err == nil && exists {
-			fmt.Println("Bucket '" + bucketName + "' already exists")
+			log.Printf("Bucket '%s' already exists", bucketName)
 		} else {
 			return nil, err
 		}
