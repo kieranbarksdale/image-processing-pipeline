@@ -116,3 +116,6 @@ c96be8b8-3127-429f-8628-79ca9198d63e.zip/
 - **Postgres write amplification** — each job produces 5+ writes across two tables. 
   At high concurrency this becomes a bottleneck. Read replicas and connection pooling 
   would be required at production scale.
+
+## Coming soon 
+Building a tool using Toxiproxy to simulate network conditions (latency, packet loss, timeouts) and instrument the pipeline for performance benchmarking and observability.

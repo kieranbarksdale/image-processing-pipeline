@@ -29,6 +29,14 @@ services:
       - ${REDIS_PORT}:6379
     volumes:
       - redis_data:/data
+  
+  toxiproxy:
+    image: ghcr.io/shopify/toxiproxy:2.11.0
+    ports:
+      - "8474:8474"
+      - "21211:21211"
+    networks:
+      - app-network
 
   minio:
     image: minio/minio:latest 
@@ -47,6 +55,8 @@ services:
     volumes:
       - minio_data:/data
     command: server /data --console-address ":9001"
+    networks:
+      - app-network
 
   api:
     build: .
@@ -107,9 +117,14 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+    networks:
+      - app-network
 
 volumes:
   postgres_data:
   redis_data:
   minio_data:
+
+networks:
+  app-network:
   
