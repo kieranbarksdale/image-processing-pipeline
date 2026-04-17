@@ -12,6 +12,7 @@ import (
 	"image-processing-pipeline/internal/minio"
 	"image-processing-pipeline/internal/queue"
 	"image-processing-pipeline/internal/cache"
+	"image-processing-pipeline/internal/metrics"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -43,14 +44,24 @@ func main() {
 	}
 	log.Println("Minio connected:", minioClient)
 	
+	// connect to redis
 	redisClient, err := cache.CreateRedisClient(cfg.RedisURL)
 	if err != nil {
 		log.Fatal("Error connecting to redis: ", err)
 	}
 	log.Println("Redis connected:", redisClient)
 
+	// connect to queue
 	taskDistributor := queue.CreateQueue(fmt.Sprintf("%s:%s", cfg.RedisHost, cfg.RedisPort))
 	log.Println("Queue connected:", taskDistributor)
+
+	// connect to toxiproxy
+	var toxiClient *toxiproxy.Client
+	toxiClient, err = metrics.SetupToxiProxy(fmt.Sprintf("%s:%s", cfg.RedisHost, cfg.RedisPort))
+	if err != nil {
+		log.Println("Error connecting to toxiproxy: ", err)
+	}
+	log.Println("ToxiProxy connected:", toxiClient)
 
 	// setup http handlers and routes
 	router.HandleFunc("/health", health.HealthHandler)

@@ -17,6 +17,8 @@ services:
       - ${POSTGRES_PORT}:5432
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - pipeline-network
 
   redis:
     image: redis:7
@@ -29,14 +31,16 @@ services:
       - ${REDIS_PORT}:6379
     volumes:
       - redis_data:/data
+    networks:
+      - pipeline-network
   
   toxiproxy:
     image: ghcr.io/shopify/toxiproxy:2.11.0
     ports:
       - "8474:8474"
-      - "21211:21211"
+      - "8666:8666"
     networks:
-      - app-network
+      - pipeline-network
 
   minio:
     image: minio/minio:latest 
@@ -56,7 +60,7 @@ services:
       - minio_data:/data
     command: server /data --console-address ":9001"
     networks:
-      - app-network
+      - pipeline-network
 
   api:
     build: .
@@ -91,6 +95,8 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+    networks:
+      - pipeline-network
 
   worker:
     build: .
@@ -118,7 +124,7 @@ services:
       minio:
         condition: service_healthy
     networks:
-      - app-network
+      - pipeline-network
 
 volumes:
   postgres_data:
@@ -126,5 +132,7 @@ volumes:
   minio_data:
 
 networks:
-  app-network:
+  pipeline-network:
+    driver: bridge
+
   
