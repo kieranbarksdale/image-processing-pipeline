@@ -10,7 +10,7 @@ Two binaries communicate through a Redis-backed task queue:
 
 - **API** (`cmd/api`) — validates uploads, stores the original image in MinIO, writes 
   job metadata to Postgres, enqueues a processing task, and returns a job ID. 
-  Responds in under 200ms regardless of image size.
+  Responds in under 200ms regardless of image size. *Max image size is 5MB.
 - **Worker** (`cmd/worker`) — pulls tasks from the Asynq queue, fetches the original 
   from MinIO, resizes into three formats, stores results back to MinIO, and updates 
   job status in Postgres. Failed jobs are retried up to 3 times before being marked 
